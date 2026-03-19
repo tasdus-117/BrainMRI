@@ -21,6 +21,17 @@ Phân tích và hướng cải thiện (đánh giá trên chỉ số Dice ~ 0.69
     có thể áp dụng phương pháp đổi định dạng trong model 3D để tăng tốc đọ tính toán.
 - Tăng EPOCH lên 100 -> xem xét sự hội tụ
 
+log_3D_UNet-3D.csv
+log_DeepLabV3+.csv
+log_Swin-UNet.csv
+
+*) Bộ dữ liệu 2D qua xử lí:
+    - Sử dụng định dạng .npy (đã tiền xử lý trong model 3D), chỉ lấy 1 lát cắt (slice) thứ 77 (ở chính giữa)
+    - Sau khi train với cùng 3 model đã sử dụng -> tốc độ train nhanh hơn rất nhiều (từ 2,5h -> 30m)
+
+log_2D_npy_DeepLabV3+.csv
+log_2D_npy_Swin-UNet.csv
+log_2D_npy_UNet++.csv
 
 *) Với bộ dữ liệu 3D:
 Pipeline xử lý:
@@ -29,7 +40,13 @@ Pipeline xử lý:
     -> Tăng tốc độ tính toán do mô hình không phải giải nén từ từ đối với định dạng .nii (gấp ~20 lần)
     - Tiền xử lý (resize ảnh về 160x160 fit với model) -> Train với 3 model (3D version) -> Ghi ra file log loss, dice, IoU từng epoch
 
+NOTE: Mô hình Swin UNet đang gặp vấn đề do không đủ bộ nhớ VRAM (RTX 3050 4Gb VRAM) 
+	-> Tạm chưa chạy được mô hình Swin UNet -> Cần tìm phương hướng giải quyết
+
 Phân tích và cải thiện:
     - Background chiếm thể tích rất lớn -> chỉnh sửa loss = loss_dice + loss_CE, tăng trọng số nhãn 1,2,3
     - Nếu tốc độ tính toán đủ nhanh, ta có thể tăng EPOCHS lên 100 hoặc hơn -> cải thiện DICE và IoU
     - Chạy trên toàn tập lát cắt (từ slices thứ 1 -> 155)
+
+log_3D_DeepLabV3Plus-3D.csv
+log_3D_UNet-3D.csv
