@@ -1,0 +1,52 @@
+*) Với bộ dữ liệu 2D: 368 ảnh (1 ảnh ko đúng tên file -> bị bỏ qua) - 1 slice/voxel 3D (slice ở giữa voxel 3D)
+# --- HYPERPARAMETERS ---
+BATCH_SIZE = 8
+EPOCHS = 20
+LR = 1e-4
+
+Pipeline xử lý:
+    - Data đầu vào là 1 model voxel 3D có shape (240, 240, 155) với 155 slices (lát cắt)
+    - Ta lấy lắt cắt ở giữa (slice thứ 77) với từng bệnh nhân (lát cắt chứa thông tin nhiều nhất - giữa hộp sọ)
+    - Mỗi bệnh nhân là 1 ảnh 2D x 369 bệnh nhân (trừ bệnh nhân 355 - lỗi tên thư mục)
+    - Tiền xử lý -> Train với 3 model -> log loss, dice, IoU từng epoch
+NOTE: Lỗi VSCode khiến code bị mất nên chưa thực hiện đánh gias trên tập validation được!!
+=> Đổi môi trường sang PyCharm
+
+Phân tích và hướng cải thiện (đánh giá trên chỉ số Dice ~ 0.69 và IoU ~ 0.53)
+- Augmentation: xoay, lật, thêm nhiễu
+- Accuracy cao nhưng Dice thấp -> Weighted Cross Entropy: Tăng trọng số cho các nhãn 1, 2, 3 lên gấp 5-10 lần so với nhãn 0.
+-> background (nhãn 0) chiếm nhiều diện tích -> tăng trọng số nhãn 1, 2, 3
+- Learning rate: ReduceLROnPlateau, hi thấy Dice Score không tăng trong 3-5 Epoch, nó sẽ tự động giảm LR đi 10 lần (ví dụ từ $1e-4$ xuống $1e-5$). 
+- Ban đầu ta vẫn train với định dạng .nii (2 tiếng rưỡi với 3 model 20 EPOCHS),
+    có thể áp dụng phương pháp đổi định dạng trong model 3D để tăng tốc đọ tính toán.
+- Tăng EPOCH lên 100 -> xem xét sự hội tụ
+
+log_3D_UNet-3D.csv
+log_DeepLabV3+.csv
+log_Swin-UNet.csv
+
+*) Bộ dữ liệu 2D qua xử lí:
+    - Sử dụng định dạng .npy (đã tiền xử lý trong model 3D), chỉ lấy 1 lát cắt (slice) thứ 77 (ở chính giữa)
+    - Sau khi train với cùng 3 model đã sử dụng -> tốc độ train nhanh hơn rất nhiều (từ 2,5h -> 30m)
+
+log_2D_npy_DeepLabV3+.csv
+log_2D_npy_Swin-UNet.csv
+log_2D_npy_UNet++.csv
+
+*) Với bộ dữ liệu 3D:
+Pipeline xử lý:
+    - Tiền xử lý: Biến đổi data đầu vào (định dạng .nii) -> định dạng numpy array (.npy) cho từng bệnh nhân
+    - Mỗi một file .npy lưu 64 lát cắt (slices) từ lát thứ 50 -> 114 (ở giữa có thể giữ đc nhiều thông tin nhất)
+    -> Tăng tốc độ tính toán do mô hình không phải giải nén từ từ đối với định dạng .nii (gấp ~20 lần)
+    - Tiền xử lý (resize ảnh về 160x160 fit với model) -> Train với 3 model (3D version) -> Ghi ra file log loss, dice, IoU từng epoch
+
+NOTE: Mô hình Swin UNet đang gặp vấn đề do không đủ bộ nhớ VRAM (RTX 3050 4Gb VRAM) 
+	-> Tạm chưa chạy được mô hình Swin UNet -> Cần tìm phương hướng giải quyết
+
+Phân tích và cải thiện:
+    - Background chiếm thể tích rất lớn -> chỉnh sửa loss = loss_dice + loss_CE, tăng trọng số nhãn 1,2,3
+    - Nếu tốc độ tính toán đủ nhanh, ta có thể tăng EPOCHS lên 100 hoặc hơn -> cải thiện DICE và IoU
+    - Chạy trên toàn tập lát cắt (từ slices thứ 1 -> 155)
+
+log_3D_DeepLabV3Plus-3D.csv
+log_3D_UNet-3D.csv
